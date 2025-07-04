@@ -4,3 +4,4 @@ cs50
 werkzeug
 openai
 python-dotenv
+google-cloud-aiplatform

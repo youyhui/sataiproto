@@ -1,11 +1,11 @@
-# --- FILE: ai.py ---
-
-import openai
+import requests
 import os
 from dotenv import load_dotenv
 
-load_dotenv()
-openai.api_key = os.getenv("OPENAI_API_KEY")
+API_KEY = os.getenv("GEMINI_API_KEY")
+PROJECT_ID = os.getenv("GOOGLE_CLOUD_PROJECT")
+LOCATION = "us-central1"  # adjust if needed
+MODEL_ID = "gemini-2.5"   # replace with your Gemini model name
 
 def generate_mcqs_by_topics(topics, num_questions=5):
     prompt = f"""
@@ -21,14 +21,30 @@ Correct Answer: <A/B/C/D>
 
 One blank line between questions.
 """
+
+    url = f"https://{LOCATION}-aiplatform.googleapis.com/v1/projects/{PROJECT_ID}/locations/{LOCATION}/publishers/google/models/{MODEL_ID}:generateText"
+
+    headers = {
+        "Content-Type": "application/json",
+        "x-goog-api-key": API_KEY,
+    }
+
+    payload = {
+        "prompt": prompt,
+        "temperature": 0.7,
+        "maxOutputTokens": 1000,
+        "topP": 0.95,
+        "topK": 40,
+    }
+
     try:
-        response = openai.ChatCompletion.create(
-            model="gpt-3.5-turbo",
-            messages=[{"role": "user", "content": prompt}]
-        )
-        return parse_mcqs(response.choices[0].message.content)
+        response = requests.post(url, headers=headers, json=payload)
+        response.raise_for_status()
+        data = response.json()
+        generated_text = data.get("candidates", [{}])[0].get("content", "")
+        return parse_mcqs(generated_text)
     except Exception as e:
-        print("OpenAI error:", e)
+        print("Gemini API error:", e)
         return []
 
 def parse_mcqs(text):

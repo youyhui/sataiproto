@@ -1,0 +1,27 @@
+{% extends 'layout.html' %}
+{% block title %}Add / AI Practice{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+
+  <!-- 🔘 Submit Question Button -->
+  <button class="btn btn-success mb-3" onclick="goToQuestions()">➕ Submit a New Question</button>
+
+  <!-- 🔘 Question Form (optional placeholder) -->
+  <form id="qform" class="mb-5" action="{{ url_for('question_register') }}" method="POST" enctype="multipart/form-data">
+    <!-- You can put input fields here if needed -->
+  </form>
+
+  <!-- ⚡ AI Practice Section -->
+  <h2>⚡ Practice with AI</h2>
+  <button class="btn btn-outline-primary mt-2" onclick="practiceWithAI()">Generate Practice Questions</button>
+
+  <div id="ai-output" class="mt-4"></div>
+
+</div>
+{% endblock %}
+
+{% block scripts %}
+<!-- JavaScript File -->
+<script src="{{ url_for('static', filename='js/questions.js') }}"></script>
+{% endblock %}
