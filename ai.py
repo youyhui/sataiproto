@@ -51,7 +51,8 @@ def parse_mcqs(text):
             mcqs.append({
                 "questionText": q_text,
                 "options": options,
-                "correctAnswer": correct+
+                "correctAnswer": correct,
+                "explanation": "Click to reveal explanation..."
             })
         except Exception as e:
             print("Parsing error:", e)

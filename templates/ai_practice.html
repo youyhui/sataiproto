@@ -1,0 +1,33 @@
+{% extends 'layout.html' %}
+{% block title %}AI Practice{% endblock %}
+{% block content %}
+
+<h2 class="mb-4">📚 AI-Generated Practice Questions</h2>
+
+{% if questions %}
+  {% for q in questions %}
+    <div class="card mb-4 shadow-sm">
+      <div class="card-body">
+        <h5 class="card-title">Q{{ loop.index }}. {{ q.questionText }}</h5>
+        <ul class="list-group list-group-flush mt-3">
+          {% for key, val in q.options.items() %}
+          <li class="list-group-item">{{ key }}. {{ val }}</li>
+          {% endfor %}
+        </ul>
+        <div class="mt-3">
+          <span class="badge bg-success">Correct: {{ q.correctAnswer }}</span>
+        </div>
+      </div>
+    </div>
+  {% endfor %}
+{% else %}
+  <div class="alert alert-warning">⚠️ No questions generated.</div>
+{% endif %}
+
+<div class="text-center mt-4">
+  <form method="post">
+    <button class="btn btn-primary">🔁 Regenerate Questions</button>
+  </form>
+</div>
+
+{% endblock %}

@@ -1,0 +1,18 @@
+body {
+  font-family: 'Segoe UI', sans-serif;
+  background-color: #f7f9fb;
+}
+
+header, nav {
+  margin-bottom: 20px;
+}
+
+.card {
+  border-radius: 12px;
+}
+
+.question-container, .score-container {
+  background: #fff;
+  padding: 20px;
+  border-radius: 10px;
+}

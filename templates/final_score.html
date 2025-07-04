@@ -1,10 +1,9 @@
 {% extends 'layout.html' %}
-
 {% block title %}Results{% endblock %}
 {% block content %}
-<div class="score-container">
-    <h2>Your Final Score</h2>
-    <div class="final-score">{{ score }} / {{ total }}</div>
-    <a href="{{ url_for('restart') }}"><button>Restart Quiz</button></a>
+<div class="text-center mt-5">
+  <h2 class="mb-3">🎉 Your Final Score</h2>
+  <div class="display-4 mb-4">{{ score }} / {{ total }}</div>
+  <a class="btn btn-success" href="{{ url_for('restart') }}">🔁 Restart Quiz</a>
 </div>
 {% endblock %}
