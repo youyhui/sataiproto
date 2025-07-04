@@ -1,0 +1,37 @@
+{
+  "questions": [
+    {
+      "type": "multiple_choice",
+      "category": "Math (Algebra)",
+      "question": "Solve for x: 2x + 5 = 13",
+      "options": ["x = 3", "x = 4", "x = 5", "x = 6"],
+      "correct_answer": "x = 4"
+    },
+    {
+      "type": "multiple_choice",
+      "category": "Math (Functions)",
+      "question": "If f(x) = 2x^2 - 3x + 1, what is f(2)?",
+      "options": ["3", "5", "7", "11"],
+      "correct_answer": "3"
+    },
+    {
+      "type": "user_input",
+      "category": "Math (Linear Equations)",
+      "question": "Find the slope of the line passing through the points (1, 2) and (3, 6).",
+      "correct_answer": "2"
+    },
+    {
+      "type": "multiple_choice",
+      "category": "Math (Geometry)",
+      "question": "What is the area of a triangle with base 10 cm and height 5 cm?",
+      "options": ["15 cm²", "25 cm²", "50 cm²", "100 cm²"],
+      "correct_answer": "25 cm²"
+    },
+    {
+      "type": "user_input",
+      "category": "Math (Quadratics)",
+      "question": "What is the vertex of the parabola given by y = x² - 6x + 8? (Enter as ordered pair)",
+      "correct_answer": "(3, -1)"
+    }
+  ]
+}

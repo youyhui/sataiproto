@@ -1,0 +1,14 @@
+{% extends 'layout.html' %}
+
+{% block title %}Add / AI Practice{% endblock %}
+{% block content %}
+<h2>Submit a New Question</h2>
+<form id="qform" action="{{ url_for('question_register') }}" method="POST" enctype="multipart/form-data">
+    <!-- fields: subject, category, difficulty, QType, QText, A-D, correctAns, explanation, image -->
+    <!-- replicate your earlier HTML form here -->
+</form>
+
+<h2>Practice with AI</h2>
+<button onclick="practiceWithAI()">Generate Practice Questions</button>
+<div id="ai-output"></div>
+{% endblock %}

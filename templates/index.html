@@ -1,0 +1,20 @@
+{% extends 'layout.html' %}
+
+{% block title %}Quiz{% endblock %}
+{% block content %}
+<div class="question-container">
+    <h2>{{ question['question'] }}</h2>
+    <form method="POST">
+        {% if question['type'] == 'multiple_choice' %}
+        <div class="options">
+            {% for opt in question['options'] %}
+            <label><input type="radio" name="user_answer" value="{{ opt }}" /> {{ opt }}</label><br />
+            {% endfor %}
+        </div>
+        {% else %}
+        <input type="text" name="user_answer" placeholder="Your answer" />
+        {% endif %}
+        <button type="submit">Submit</button>
+    </form>
+</div>
+{% endblock %}
