@@ -10,10 +10,10 @@ def generate_mcqs_by_topics(topics, num_questions=5):
     model_id = "gemini-2.5"
     api_key = os.getenv("GEMINI_API_KEY")
 
-    url = f"https://{location}-aiplatform.googleapis.com/v1/projects/{project_id}/locations/{location}/publishers/google/models/{model_id}:generateText"
+    url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent"
 
     prompt = f"""
-You are a SAT MCQ generator. Generate {num_questions} SAT-style multiple-choice questions in the following categories: {', '.join(topics)}.
+You are a SAT MCQ generator. Generate {num_questions} SAT-style multiple-choice questions in latex format in the following categories: {', '.join(topics)}.
 
 Format strictly like this (no extra commentary):
 Question: <question text>
