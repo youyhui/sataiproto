@@ -2,10 +2,12 @@ import requests
 import os
 from dotenv import load_dotenv
 
+load_dotenv()  
+
 API_KEY = os.getenv("GEMINI_API_KEY")
 PROJECT_ID = os.getenv("GOOGLE_CLOUD_PROJECT")
-LOCATION = "us-central1"  # adjust if needed
-MODEL_ID = "gemini-2.5"   # replace with your Gemini model name
+LOCATION = "us-central1"
+MODEL_ID = "gemini-2.5"  # or your actual model ID like gemini-1.5-pro
 
 def generate_mcqs_by_topics(topics, num_questions=5):
     prompt = f"""
