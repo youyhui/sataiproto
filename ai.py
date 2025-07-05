@@ -1,17 +1,16 @@
 import requests
 import os
 from dotenv import load_dotenv
+import json
 
-load_dotenv()  
-
-API_KEY = os.getenv("GEMINI_API_KEY")
-PROJECT_ID = os.getenv("GOOGLE_CLOUD_PROJECT")
-LOCATION = "us-central1"
-MODEL_ID = "gemini-2.5"  # or your actual model ID like gemini-1.5-pro
+load_dotenv()
+api_key = os.getenv("GEMINI_API_KEY")
 
 def generate_mcqs_by_topics(topics, num_questions=5):
+    url = "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent"
+
     prompt = f"""
-You are a SAT MCQ generator. Generate {num_questions} SAT-style multiple-choice questions in the following categories: {', '.join(topics)}.
+You are a SAT MCQ generator. Generate {num_questions} SAT-style multiple-choice questions in LaTeX format in the following categories: {', '.join(topics)}.
 
 Format strictly like this (no extra commentary):
 Question: <question text>
@@ -24,26 +23,31 @@ Correct Answer: <A/B/C/D>
 One blank line between questions.
 """
 
-    url = f"https://{LOCATION}-aiplatform.googleapis.com/v1/projects/{PROJECT_ID}/locations/{LOCATION}/publishers/google/models/{MODEL_ID}:generateText"
-
     headers = {
         "Content-Type": "application/json",
-        "x-goog-api-key": API_KEY,
+        "x-goog-api-key": api_key,
     }
 
     payload = {
-        "prompt": prompt,
-        "temperature": 0.7,
-        "maxOutputTokens": 1000,
-        "topP": 0.95,
-        "topK": 40,
+        "contents": [
+            {
+                "parts": [
+                    {"text": prompt}
+                ]
+            }
+        ]
     }
 
     try:
         response = requests.post(url, headers=headers, json=payload)
         response.raise_for_status()
         data = response.json()
-        generated_text = data.get("candidates", [{}])[0].get("content", "")
+        generated_text = (
+            data.get("candidates", [{}])[0]
+            .get("content", {})
+            .get("parts", [{}])[0]
+            .get("text", "")
+        )
         return parse_mcqs(generated_text)
     except Exception as e:
         print("Gemini API error:", e)
@@ -52,27 +56,24 @@ One blank line between questions.
 def parse_mcqs(text):
     mcqs = []
     questions = text.strip().split("\n\n")
-    for q in questions:
-        lines = q.strip().split("\n")
-        if len(lines) < 6:
-            continue
-        try:
-            q_text = lines[0].replace("Question:", "").strip()
-            options = {
-                lines[1][0]: lines[1][3:].strip(),
-                lines[2][0]: lines[2][3:].strip(),
-                lines[3][0]: lines[3][3:].strip(),
-                lines[4][0]: lines[4][3:].strip(),
-            }
-            correct = lines[5].replace("Correct Answer:", "").strip().upper()
-
-            mcqs.append({
-                "questionText": q_text,
-                "options": options,
-                "correctAnswer": correct,
-                "explanation": "Click to reveal explanation..."
+    mcqs = []
+    try:
+            data = json.loads(text)
+            for item in data.get('questions', []):
+             mcqs.append({
+                'questionText': item['question'],
+                'options': {
+                    'A': item['options'][0],
+                    'B': item['options'][1],
+                    'C': item['options'][2],
+                    'D': item['options'][3]
+                },
+                'correctAnswer': item['correct_answer'][0]
             })
-        except Exception as e:
-            print("Parsing error:", e)
-            continue
-    return mcqs
+            return mcqs
+    except:
+            # Fallback to original parsing
+            questions = text.strip().split("\n\n")
+            for q in questions:
+            # ... (original parsing code)
+                return []

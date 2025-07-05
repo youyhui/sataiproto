@@ -5,3 +5,4 @@ werkzeug
 openai
 python-dotenv
 google-cloud-aiplatform
+google-generativeai

@@ -1,77 +1,147 @@
-import requests
+from flask import Flask, render_template, request, redirect, url_for, session, jsonify
+from flask_session import Session
+from cs50 import SQL
+from werkzeug.security import generate_password_hash, check_password_hash
+from werkzeug.utils import secure_filename
+from functions import generate_user_id, validEmail
+from ai import generate_mcqs_by_topics
 import os
+import json
+import re
 from dotenv import load_dotenv
 
 load_dotenv()
 
-def generate_mcqs_by_topics(topics, num_questions=5):
-    project_id = os.getenv("GOOGLE_CLOUD_PROJECT")
-    location = "us-central1"
-    model_id = "gemini-2.5"
-    api_key = os.getenv("GEMINI_API_KEY")
+# --- Flask setup ---
+app = Flask(__name__)
+app.config["SESSION_PERMANENT"] = False
+app.config["SESSION_TYPE"] = "filesystem"
+app.secret_key = os.getenv('FLASK_SECRET', 'your_secret_key')
+Session(app)
 
-    url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent"
+# --- Databases ---
+db = SQL("sqlite:///data.db")         # users, questions, answers, performance, questionImages
+qc = SQL("sqlite:///questions.db")    # optional separate for questionImages
 
-    prompt = f"""
-You are a SAT MCQ generator. Generate {num_questions} SAT-style multiple-choice questions in latex format in the following categories: {', '.join(topics)}.
+# --- Load static JSON questions (backup) ---
+def load_questions():
+    with open('questions.json', 'r') as f:
+        return json.load(f)['questions']
 
-Format strictly like this (no extra commentary):
-Question: <question text>
-A. <option A>
-B. <option B>
-C. <option C>
-D. <option D>
-Correct Answer: <A/B/C/D>
+# --- Normalize answers ---
+def normalize_answer(ans):
+    if not ans: return ''
+    ans = re.sub(r'\\\(|\\\)', '', ans)
+    return ans.replace(' ', '').lower()
 
-One blank line between questions.
-"""
+# --- Before each request ---
+@app.before_request
+def _init_session():
+    session.setdefault('score', 0)
+    session.setdefault('current_question', 0)
+    session.setdefault('answers', [])
 
-    headers = {
-        "Content-Type": "application/json",
-        "x-goog-api-key": api_key,
-    }
+# --- Routes ---
+@app.route('/', methods=['GET', 'POST'])
+def index():
+    questions = load_questions()
+    idx = session['current_question']
+    if idx >= len(questions):
+        return redirect(url_for('final_score'))
+    q = questions[idx]
+    if request.method == 'POST':
+        user_ans = request.form.get('user_answer', '').strip()
+        correct = q['correct_answer'].strip()
+        is_corr = normalize_answer(user_ans) == normalize_answer(correct)
+        if is_corr:
+            session['score'] += 1
+        session['answers'].append({
+            'question': q['question'], 'user_answer': user_ans,
+            'correct_answer': correct, 'is_correct': is_corr
+        })
+        session['current_question'] += 1
+        return redirect(url_for('index'))
+    return render_template('index.html', question=q, index=idx)
 
-    payload = {
-        "prompt": prompt,
-        "temperature": 0.7,
-        "maxOutputTokens": 1000,
-        "topP": 0.95,
-        "topK": 40,
-    }
+@app.route('/final_score')
+def final_score():
+    total = len(load_questions())
+    return render_template('final_score.html', score=session['score'], total=total)
 
-    try:
-        response = requests.post(url, headers=headers, json=payload)
-        response.raise_for_status()
-        data = response.json()
-        generated_text = data.get('candidates', [{}])[0].get('content', '')
-        return parse_mcqs(generated_text)
-    except Exception as e:
-        print("Gemini API error:", e)
-        return []
+@app.route('/restart')
+def restart():
+    session.clear()
+    return redirect(url_for('index'))
 
-def parse_mcqs(text):
-    mcqs = []
-    questions = text.strip().split("\n\n")
-    for q in questions:
-        lines = q.strip().split("\n")
-        if len(lines) < 6:
-            continue
-        try:
-            q_text = lines[0].replace("Question:", "").strip()
-            options = {
-                lines[1][0]: lines[1][3:].strip(),
-                lines[2][0]: lines[2][3:].strip(),
-                lines[3][0]: lines[3][3:].strip(),
-                lines[4][0]: lines[4][3:].strip(),
-            }
-            correct = lines[5].replace("Correct Answer:", "").strip().upper()
-            mcqs.append({
-                "questionText": q_text,
-                "options": options,
-                "correctAnswer": correct,
-                "explanation": "Generated using AI based on topic analysis."
-            })
-        except Exception as e:
-            print("Parsing error:", e)
-            continue
-    return mcqs
+# --- Authentication & Dashboard ---
+@app.route('/login', methods=['GET', 'POST'])
+def login():
+    if request.method == 'POST':
+        user = request.form.get('usr')
+        pwd = request.form.get('pwd')
+        if not user or not pwd or len(pwd) < 8:
+            return "failure"
+        userId = generate_user_id(user)
+        row = db.execute("SELECT password_hash FROM users WHERE id = ?", userId)
+        if row and check_password_hash(row[0]['password_hash'], pwd):
+            session['userId'] = userId
+            return redirect(url_for('dashboard'))
+        return "Log In Failed"
+    return render_template('index.html', username=None)
+
+@app.route('/signup', methods=['POST'])
+def signup():
+    user = request.form.get('usr')
+    email = request.form.get('email')
+    pwd = request.form.get('pwd')
+    if not user or not email or not pwd or len(pwd) < 8 or not validEmail(email):
+        return "failure"
+    userId = generate_user_id(user)
+    hash_pw = generate_password_hash(pwd)
+    db.execute("INSERT INTO users (id, username, email, password_hash) VALUES(?, ?, ?, ?)",
+               userId, user, email, hash_pw)
+    session['userId'] = userId
+    return redirect(url_for('dashboard'))
+
+@app.route('/logout')
+def logout():
+    session.clear()
+    return redirect(url_for('index'))
+
+@app.route('/dashboard')
+def dashboard():
+    return render_template('dashboard.html')
+
+# --- Question submission ---
+@app.route('/questions', methods=['GET'])
+def questions_page():
+    return render_template('questions.html')
+
+@app.route('/qregister', methods=['POST'])
+def question_register():
+    return "success"
+
+# --- Analyze weak topics & AI practice ---
+def analyze_weak_topics(user_id):
+    rows = db.execute("""
+        SELECT category, SUM(CASE WHEN isCorrect=0 THEN 1 ELSE 0 END) AS wrong
+        FROM performance JOIN questions ON performance.questionId = questions.id
+        WHERE performance.userId = ?
+        GROUP BY category ORDER BY wrong DESC LIMIT 3
+    """, user_id)
+    return [r['category'] for r in rows if r['wrong']]
+
+@app.route('/ai_practice_ui')
+def ai_practice_ui():
+    if "userId" not in session:
+        return redirect(url_for("login"))
+    
+    # Generate questions directly
+    topics = analyze_weak_topics(session['userId'])
+    questions = generate_mcqs_by_topics(topics) if topics else []
+    return render_template("ai_practice.html", questions=questions)
+
+# Remove /ai_practice route (no longer needed)
+
+if __name__ == '__main__':
+    app.run(debug=True)

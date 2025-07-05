@@ -1,5 +1,5 @@
 function goToQuestions() {
-    window.location.href = "{{ url_for('questions') }}";  //add that question submitting utl
+    window.location.href = "{{ url_for('questions.html') }}";  //add that question submitting utl
   }
 
 async function practiceWithAI() {
